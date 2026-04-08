@@ -2,6 +2,9 @@
 - name: Deploy and enable SMAK‑AM
   hosts: all
   gather_facts: false
+  collections:
+    - ansible.windows
+    - community.windows
   vars:
     toolroot: 'C:\\Program Files\\SMAK‑AM'
     task_name: 'SMAK_AM'
