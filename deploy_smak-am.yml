@@ -1,41 +1,59 @@
 ---
-- name: Deploy and enable SMAK‑AM
+- name: Manage SMAK AM Lifecycle
   hosts: all
-  gather_facts: false
-  collections:
-    - ansible.windows
-    - community.windows
   vars:
-    toolroot: 'C:\\Program Files\\SMAK‑AM'
-    task_name: 'SMAK_AM'
-    task_path: 'C:\\Program Files\\SMAK‑AM\\run-smack-am.bat'
+    uninstall: false
+    smak_path: 'C:\_SMAK_AM'
+    smak_share: '\\htm-mdus.med.va.gov\public\02_SMAK_AM_Install\_SMAK_AM\'
 
   tasks:
+    # --- UNINSTALL BLOCK ---
+    - name: Perform Uninstallation
+      when: uninstall | bool
+      block:
+        - name: Run Removal script
+          # Using .\ indicates local directory execution in the chdir
+          ansible.windows.win_shell: '.\___4_Remove_SMAK2_Scheduled_Task.bat'
+          args:
+            chdir: '{{ smak_path }}'
+          register: removal_result
+          failed_when:
+            - removal_result.rc != 0
+            - '"path not found" not in removal_result.stderr | lower'
 
-  - name: Copy SMAK‑AM toolset to host
-    win_copy:
-      src: files/smack‑am/          # repo location
-      dest: "{{ toolroot }}/"
-      remote_src: yes
+        - name: Remove SMAK directory
+          ansible.windows.win_file:
+            path: '{{ smak_path }}'
+            state: absent
 
-  - name: Verify that toolset exists
-    win_file:
-      path: "{{ toolroot }}\\run-smack-am.bat"
-      state: file
-    register: tool_present
-    ignore_errors: true
+        - name: Stop Playbook Execution for Uninstalled Nodes
+          meta: end_host
 
-  - name: Install SMAK‑AM scheduled task  (only if tool present)
-    win_scheduled_task:
-      name: "{{ task_name }}"
-      actions:
-        - path: "{{ task_path }}"
-      triggers:
-        - type: daily
-          start_boundary: '2026-01-01T00:01:00'
-          random_delay: PT23H            # 23‑hour offset per the guidebook [1]
-      user: SYSTEM
-      run_level: highest
-      priority: idle
-      state: present
-    when: tool_present.changed or tool_present.failed == false
+    # --- INSTALLATION BLOCK ---
+    - name: Ensure the destination directory exists
+      ansible.windows.win_file:
+        path: '{{ smak_path }}'
+        state: directory
+
+    - name: Copy _SMAK_AM directory from network share
+      ansible.windows.win_copy:
+        src: '{{ smak_share }}'
+        dest: '{{ smak_path }}\'
+        remote_src: yes
+
+    - name: Unblock SMAK files to prevent execution issues
+      ansible.windows.win_powershell:
+        script: |
+          if (Test-Path '{{ smak_path }}') {
+              Get-ChildItem -Path '{{ smak_path }}' -Recurse | Unblock-File
+          }
+
+    - name: Install SMAK2 Scheduled Task script
+      ansible.windows.win_shell: '.\___3_Install_SMAK2_Scheduled_Task.bat'
+      args:
+        chdir: '{{ smak_path }}'
+
+    - name: Manual Run SMAK2 script
+      ansible.windows.win_shell: '.\___1_Manual_Run_SMAK2.bat'
+      args:
+        chdir: '{{ smak_path }}'
