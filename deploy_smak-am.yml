@@ -5,6 +5,7 @@
   become_method: runas
   # Win_Share_User is mapped from the PE Custom Credential
   become_user: "{{ win_share_user }}"
+  ansible_become_password: "{{ win_share_pass }}"
   become_flags: "logon_type=new_credentials"
   vars:
     uninstall: false
