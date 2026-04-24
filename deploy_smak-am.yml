@@ -4,7 +4,7 @@
   become: yes
   become_method: runas
   # Win_Share_User is mapped from the PE Custom Credential
-  become_user: "VA\VHAV06HTMAAP"
+  become_user: "{{ win_share_user }}"
   become_flags: "logon_type=new_credentials"
   vars:
     uninstall: false
