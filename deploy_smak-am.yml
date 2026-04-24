@@ -5,9 +5,9 @@
   become_method: runas
   # Win_Share_User is mapped from the PE Custom Credential
   become_user: "{{ win_share_user }}"
-  ansible_become_password: "{{ win_share_pass }}"
   become_flags: "logon_type=new_credentials"
   vars:
+    ansible_become_password: "{{ win_share_pass }}"
     uninstall: false
     smak_path: 'C:\_SMAK_AM'
     smak_share: '\\htm-mdus.med.va.gov\public\02_SMAK_AM_Install\_SMAK_AM\'
