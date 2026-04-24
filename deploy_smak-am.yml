@@ -1,6 +1,11 @@
 ---
 - name: Manage SMAK AM Lifecycle
   hosts: all
+  become: yes
+  become_method: runas
+  # Win_Share_User is mapped from the PE Custom Credential
+  become_user: "{{ win_share_user }}"
+  become_flags: "logon_type=new_credentials"
   vars:
     uninstall: false
     smak_path: 'C:\_SMAK_AM'
